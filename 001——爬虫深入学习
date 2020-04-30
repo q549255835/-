@@ -1,0 +1,186 @@
+一、scrapy框架
+     1）下载文件和图片
+        scrapy为下载item中包含的文件（比如在爬取到产品时，同时也想保存对应的图片）提供了一个可重用的item pipelimes,这些pipeline有些共同的方法和结构（我们称之为media pipelimes），一般来说你会使用Files Pipeline 或者Images Pipelin，
+
+     2）为什么要选择使用scrapy内置的下载文件的方法：
+        1.避免重新下载最近已经下载过的文件。
+        2.可以方便的指定文件的存储路径
+        3.可以将下载的图片转换成通用的格式，比如png或jpg
+        4.可以方便生成缩略图
+        5.可以方便的检测图片的宽和高，确保他们满足最小限制
+        6.异步下载，效率非常高
+
+
+     3）下载文件的Files Pipeline
+        当使用Files Pipeline下载文件时，按以下步骤完成
+        1. 定义好一个Item,然后这个item中定义两个属性，分别为file_urls以及files,file_urls是用来存储需要下载的文件的url链接，需要给一个列表
+        2.当文件下载完成后，会把文件下载的相关信息存储到item的files属性中，比如下载路径，下载的URL和文件的校验码等。
+        3.在配置文件settings.py中配置FILES_STORE,这个配置文件是用来设置下载下来的路径。
+        4.启动pipeline：在ITEM_PIPELINES中设置 scrapy.pipelines.files.FilesPipeline:1。
+
+     4）下载图片的Image Pipeline:
+        当使用Images Pipeline 下载文件的时候，按以下步骤来完成
+        1. 定义好一个Item,然后这个item中定义两个属性，分别为image_urls以及images,image_urls是用来存储需要下载的文件的url链接，需要给一个列表
+        2.当文件下载完成后，会把文件下载的相关信息存储到item的images属性中，比如下载路径，下载的URL和文件的校验码等。
+        3.在配置文件settings.py中配置IMAGES_STORE,这个配置文件是用来设置下载下来的路径。
+        4.启动pipeline：在ITEM_PIPELINES中设置 scarpy.pipelines.images.ImagesPipeline:1。
+
+     5）随机请求头中间件: 在middlewares 文件中创建请求头类:
+        class UserAgentDownloadMiddleware(object):
+             USER_AGENTS = [
+                Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.122 Safari/537.36...
+                ...
+                ...
+                ...
+            ] (设置多个请求头)
+            # 导入包 import random
+           def process_request(self,request,spider):
+               user_agent = random.choice(self.USER_AGENTS)
+               request.headers['User-Angent'] = user_agent
+
+        在 settings 文件中更改 中间件名字，前面两个部分为原文件的默认名不用管
+        DOWNLOADER_MIDDLEWARES = {
+      'qichezhijia.middlewares.UserAgentDownloadMiddleware': 543,
+}
+
+     6）scrapy代理设置 例子见：boss（快代理购买）：在middlewares 文件中创建IP类:
+        class IPProxyDownloadMiddleware(object):
+            def process_request(self,request,spider):
+            PROXIES = ["#代理ip地址", ..., ..., ...
+            ]
+            #设置独享代理配置
+            proxy = 'IP地址'
+            user_password = "用户名: 密码"
+            # 导入 import base64
+            request.meta['proxy'] = proxy
+            # bytes
+            bs64_user_password = base64.b64encode(user_password.encode('utf-8'))
+            request.headers['Proxy-Authorization'] = 'Basic' + bs64_user_password.decode('utf-8')
+
+        同样在setting文件中设置：
+        DOWNLOADER_MIDDLEWARES = {
+      'qichezhijia.middlewares.UserAgentDownloadMiddleware': 543,
+      'qichezhijia.middlewares.IPProxyDownloadMiddleware': 522,
+
+}
+    
+    ajax格式数据可用
+   
+
+    7) redis 本机使用
+        终端： cd /usr/local/redis-5.0.5   redis-server
+        重新启动新的终端： redis-cli 进入服务器
+
+    8) redis 连接其他电脑 终端输入： redis-cli -h 192.168.1.8(另外服务器的ip地址) -p 63
+       报错解决方式： 打开redis中 redis.conf文件 更改默认IP bind 127.0.0.1 改为本机的IP地址 别人就可以连接了。
+       注意：bind绑定的是本机网卡ip地址，而不是想让其他机器连接的IP地址。如果有多块网卡，那么可以多绑定多个网卡的ip地址。如果绑定到的是0.0.0.0，那么意味着其他机器可以通过本机所有的ip地址进行访问。
+
+       列表操作：
+           在列表左边添加元素： lpush key value  例： lpush websites baidu.com
+           在列表右边添加元素： rpush key value  例： rpush websites gooble,com
+           查看列表元素：lrange websites 0 -1
+
+           移除列表中的元素：
+           移除并返回列表key的头元素：lpop key     例：lpop websites
+           移除并返回列表的尾元素： rpop key       例：rpop websites
+           移除并返回列表key的中间元素： lrem key count value   例：lrem websites 2 baidu.com
+           指定返回第几个元素的：lindex websites 0
+
+           set 操作：
+           添加元素： sadd set valuel valuel2   例：sadd set xiaotuo datuo
+           查看元素： smembers team1   例：smembers team
+           移除元素： srem set member...   例：srem team xiaotuo datuo
+           查看集合中的元素个数： scard set   例：scard team1
+
+           获取多个集合的交集： sinter set1 set2   例：sinter team1 team2
+           获取多个集合的并集： sunion set1 set2   例：sunion team1 team2
+           获取多个集合的差集： sdiff set1 set2    例：sdiff team1 team2	
+
+        hash 哈希操作：
+           添加一个新值：hset key field value   例：hset website baidu www.baidu.com
+           获取哈希中的field对应的值： hget key field  例：hget websites baidu
+           删除field中的某个field： hdel key field   例：hdel website baidu
+           获取某个哈希中所欲的field和value：hgetall key  例：hgetall website
+           获取某个哈希中所有的field：hkeys key   例：hkeys website
+           获取某个哈希中所有的值：  hvals key  例：havls website
+           判断哈希中是否存在某个field： hexists key field  例：hexists website baidu
+           获取哈希中总共的键值对： hlen field   例：hlen websites
+
+
+    分布式爬虫的项目配置：（见项目，fang-redis版）
+        将某个爬虫程序配置成redis分布式时，一般在linux系统下操作：
+        1.在终端 配置python环境：sudo apt-get install python3-dev build-essential python3-pip libxml2-dev libxslt1-dev zliblg-dev libffi-dev libssl-dev
+
+        2.查看项目所用的包：终端进入项目文件， 输入pip freeze > requirements.txt   该文件下就是所用到的包
+
+        3.在linux 系统下 ： rz 读取本地文件requirements.txt
+
+        4.安装包：pip3 install virtualenvwrapper  -->  mkvirtualenv -p /python3路径(which 命令查看) crawler-env(虚拟环境名字)
+
+        5. pip install -r requirements.txt
+
+    编写Scrapy-Redis分布式爬虫（见项目，fang-redis版）
+        要将一个scrapy项目变成一个Scrapy-redis项目只需要修改一下三点就可以了：
+        1.将爬虫的类scrapy.Spider 变成scrapy_redis.spiders.RedisSpider；或者是从scrapy.CrawlSpider 变成scrapy_redis.spiders.RedisCrawlSpider。
+
+        2 将爬虫中的start_url删掉。增加一个redis_key="xxx"。 这个redis_key是为了以后在redis中控制爬虫启动的，爬虫的第一个url，就是在redis中通过这个发出去的。
+
+        3 在配置文件中增加如下配置：
+          # Scrapy-Redis相关配置
+          # 确保request存储到redis中
+          SCHEDULER = "scrapy_redis.scheduler.Scheduler"
+
+          # 请确保所有爬虫共享相同的去重指纹
+          DUPEFILTER_CLASS = "scrapy_redis.dupefilter.RFPDupeFilter"
+
+          #设置redis为item pipeline
+          ITEM_PIPELINES = {
+              'scrapy_redis.pipelines.RedisPipline': 300
+          }
+
+          # 在redis中保持scrapy-redis用到的队列，不会请到redis中的队列，从而可以实现暂停和恢复的功能。
+          SCHEDULER_PERSIST = Ture
+
+          # 设置链接redis信息
+          REDIS_HOST = '127.0.0.1'
+          REDIS_PORT = 6379
+        
+        4. 运行爬虫
+          i 在爬虫服务器上，进入爬虫所在的路径，然后输入命令：scrapy runspider 爬虫名字
+          ii 在redis服务器上，推入一个开始的url链接：redis-cli > lpush [redis_key] start_url 开始爬取
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
