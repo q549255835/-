@@ -37,7 +37,7 @@ jupyter-console==6.1.0
 jupyter-core==4.6.3
 keyring==21.2.0
 kiwisolver==1.2.0
-lxml==4.5.0
+lxml==4.6.2
 MarkupSafe==1.1.1
 matplot==0.1.9
 matplotlib==3.2.1
