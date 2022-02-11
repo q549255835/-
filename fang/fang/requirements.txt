@@ -97,7 +97,7 @@ tornado==6.0.4
 tqdm==4.45.0
 traitlets==4.3.3
 twine==3.1.1
-Twisted==19.10.0
+Twisted==22.1.0
 typing==3.7.4.1
 urllib3==1.25.8
 ushlex==0.99.1
